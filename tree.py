@@ -1,4 +1,5 @@
 from gpiozero import SPIDevice, SourceMixin
+from numpy import array
 
 class FastRGBChristmasTree(SourceMixin, SPIDevice):
     def __init__(self, *args, **kwargs):
@@ -19,13 +20,11 @@ class FastRGBChristmasTree(SourceMixin, SPIDevice):
         return self.nled
 
     def __setitem__(self, i, val):
-        if i > self.nled - 1 or i < 0:
-            raise IndexError("LED i must be between 0 and 24!")
         if len(val) < 3 or len(val) > 4:
             raise IndexError("The length of the val array must be between 3 and 4")
 
         for j in val:
-            if i >255:
+            if j >255:
                 raise ValueError("The val must be between 0-255!")
 
         s = self.__offset + i * 4
@@ -37,8 +36,6 @@ class FastRGBChristmasTree(SourceMixin, SPIDevice):
         self.__buf[s:s+len(val)] = val
 
     def __getitem__(self, i):
-        if i > self.nled - 1 or i < 0:
-            raise IndexError("LED i must be between 0 and 24!")
         s = self.__offset + i * 4
         val = self.__buf[s:s+4]
         val[0] = self.__brightness_revert(val[0])
@@ -57,7 +54,6 @@ class FastRGBChristmasTree(SourceMixin, SPIDevice):
         return 0b00011111 & val
 
     def commit(self):
-        print(self.__buf)
         self._spi.transfer(self.__buf)
 
     def off(self):
@@ -88,11 +84,11 @@ class FastRGBChristmasTree(SourceMixin, SPIDevice):
 if __name__ == '__main__':
     tree = FastRGBChristmasTree()
     tree.brightness = 1
-    for i in range(0, tree.nled):
-        print(i)
-        tree[i] = [255, 255, 255]
-        tree.commit()
-        input()
-        tree.off()
+    while True:
+        for i in range(0, tree.nled):
+            print(i)
+            tree[i] = [255, 255, 255]
+            tree.commit()
+            tree.off()
     #tree.off()
 
