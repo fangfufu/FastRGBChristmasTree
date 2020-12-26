@@ -2,7 +2,7 @@ from gpiozero import SPIDevice, SourceMixin
 from numpy import array
 
 class FastRGBChristmasTree(SourceMixin, SPIDevice):
-    def __init__(self, brightness=1, autocommit=0, *args, **kwargs):
+    def __init__(self, brightness=1, autocommit=False, *args, **kwargs):
         super(FastRGBChristmasTree, self).__init__(mosi_pin=12, clock_pin=25,
                                                    *args, **kwargs)
         # Number of LEDs
@@ -19,10 +19,11 @@ class FastRGBChristmasTree(SourceMixin, SPIDevice):
         frame_end = [0] * 5
         # transmit buffer
         self.__buf = frame_s + [0] * self.nled * 4 +frame_end
+        self.autocommit = autocommit
+        self.brightness = 1
+
         self.reset()
         self.off()
-        self.brightness = 1
-        self.autocommit = autocommit
 
     def __len__(self):
         return self.nled
@@ -59,12 +60,17 @@ and 4.")
         if len(val) == 3:
             s += 1
         else:
-            val[0] = self.__brightness_convert(val[0])
+            self.__buf[s] = self.__brightness_convert(val[0])
+            s += 1
 
-        # Swap RGB to BGR
+        # Swap RGB to BGR, we use negative indexing, so it is agnostic to the
+        # size of val
         self.__buf[s]   = val[-1]
         self.__buf[s+1] = val[-2]
         self.__buf[s+2] = val[-3]
+
+        if self.autocommit:
+            self.commit()
 
     def __getitem__(self, ind):
         if isinstance(ind, slice):
@@ -80,6 +86,7 @@ and 4.")
         else:
             s = self.__offset + ind * 4
             val = [None] * 4
+            # Swap BGR back to RGB
             val[0] = self.__brightness_revert(self.__buf[s])
             val[1] = self.__buf[s+3]
             val[2] = self.__buf[s+2]
@@ -91,6 +98,7 @@ and 4.")
 
     def __brightness_convert(self, val):
         if val > 31 or val < 1:
+            print(val)
             raise ValueError("The brightness must be between 1 and 31")
         # 0b1110000 == 224
         return 0b11100000 | int(val)
@@ -102,8 +110,7 @@ and 4.")
         self._spi.transfer(self.__buf)
 
     def off(self):
-        for i in range(0, self.nled):
-            self.__setitem__(i, [1, 0, 0, 0])
+        self[:] =  [1, 0, 0, 0]
         self.commit()
 
     def reset(self):
