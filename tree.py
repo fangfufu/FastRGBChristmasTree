@@ -30,24 +30,38 @@ class FastRGBChristmasTree(SourceMixin, SPIDevice):
             r_start = ind.start if ind.start is not None else 0
             r_stop = ind.stop if ind.stop is not None else self.nled
             r_step = ind.step if ind.step is not None else 1
-            for i in range(r_start, r_stop, r_step):
-                self.__setitem__(i, val)
-            return
+            r = range(r_start, r_stop, r_step)
+            if type(val[0]) is not list:
+                for i in r:
+                    self.__setitem__(i, val)
+                return
+            elif len(val) == len(r):
+                for i in range(0, len(val)):
+                    self.__setitem__(r[i], val[i])
+                return
+            else:
+                raise IndexError("Mismatch between the LED indices and the \
+dimension of the colour list. ")
 
         if len(val) < 3 or len(val) > 4:
-            raise IndexError("The length of the val array must be between 3 and 4")
+            raise IndexError("The length of the val array must be between 3 \
+and 4.")
 
         for i in val:
             if i >255:
                 raise ValueError("The val must be between 0-255!")
 
         s = self.__offset + ind * 4
+
         if len(val) == 3:
             s += 1
         else:
             val[0] = self.__brightness_convert(val[0])
 
-        self.__buf[s:s+len(val)] = val
+        # Swap RGB to BGR
+        self.__buf[s]   = val[-1]
+        self.__buf[s+1] = val[-2]
+        self.__buf[s+2] = val[-3]
 
     def __getitem__(self, ind):
         s = self.__offset + ind * 4
@@ -98,14 +112,6 @@ class FastRGBChristmasTree(SourceMixin, SPIDevice):
 if __name__ == '__main__':
     tree = FastRGBChristmasTree()
     tree.brightness = 1
-    while True:
-        tree[1:tree.nled:2] = [255, 255, 255]
-        tree.commit()
-        tree[:] = [0, 0, 0]
-        tree.commit()
-        tree[2:tree.nled:2] = [255, 255, 255]
-        tree.commit()
-        tree[:] = [0, 0, 0]
-        tree.commit()
-    #tree.off()
+    tree[0:6] = [[255, 0, 0],[0,255,0],[0,0,255],[255, 255, 0],[255,0,255],[0,255,255]]
+    tree.commit()
 
