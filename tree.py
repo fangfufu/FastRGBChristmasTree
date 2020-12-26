@@ -2,8 +2,9 @@ from gpiozero import SPIDevice, SourceMixin
 from numpy import array
 
 class FastRGBChristmasTree(SourceMixin, SPIDevice):
-    def __init__(self, *args, **kwargs):
-        super(FastRGBChristmasTree, self).__init__(mosi_pin=12, clock_pin=25, *args, **kwargs)
+    def __init__(self, brightness=1, autocommit=0, *args, **kwargs):
+        super(FastRGBChristmasTree, self).__init__(mosi_pin=12, clock_pin=25,
+                                                   *args, **kwargs)
         # Number of LEDs
         self.nled = 25
         # LED configuration array
@@ -20,6 +21,8 @@ class FastRGBChristmasTree(SourceMixin, SPIDevice):
         self.__buf = frame_s + [0] * self.nled * 4 +frame_end
         self.reset()
         self.off()
+        self.brightness = 1
+        self.autocommit = autocommit
 
     def __len__(self):
         return self.nled
@@ -64,10 +67,24 @@ and 4.")
         self.__buf[s+2] = val[-3]
 
     def __getitem__(self, ind):
-        s = self.__offset + ind * 4
-        val = self.__buf[s:s+4]
-        val[0] = self.__brightness_revert(val[0])
-        return val
+        if isinstance(ind, slice):
+            val = []
+            # Convert slice to range
+            r_start = ind.start if ind.start is not None else 0
+            r_stop = ind.stop if ind.stop is not None else self.nled
+            r_step = ind.step if ind.step is not None else 1
+            r = range(r_start, r_stop, r_step)
+            for i in r:
+                val.append(self.__getitem__(i))
+            return val
+        else:
+            s = self.__offset + ind * 4
+            val = [None] * 4
+            val[0] = self.__brightness_revert(self.__buf[s])
+            val[1] = self.__buf[s+3]
+            val[2] = self.__buf[s+2]
+            val[3] = self.__buf[s+1]
+            return val
 
     def __del__(self):
         super(FastRGBChristmasTree, self).close()
@@ -100,7 +117,7 @@ and 4.")
         for i in range(0, self.nled):
             s = self.__offset + i * 4
             val += self.__buf[s]
-        return val / self.nled
+        return self.__brightness_revert(int(val / self.nled))
 
     @brightness.setter
     def brightness(self, val):
@@ -108,10 +125,17 @@ and 4.")
             s = self.__offset + i * 4
             self.__buf[s] = self.__brightness_convert(val)
 
-
 if __name__ == '__main__':
     tree = FastRGBChristmasTree()
-    tree.brightness = 1
-    tree[0:6] = [[255, 0, 0],[0,255,0],[0,0,255],[255, 255, 0],[255,0,255],[0,255,255]]
+    tree[0:tree.nled:7] = [255, 0, 0]
+    tree[1:tree.nled:7] = [0, 255, 0]
+    tree[2:tree.nled:7] = [0, 0, 255]
+    tree[3:tree.nled:7] = [255, 255, 0]
+    tree[4:tree.nled:7] = [255, 0, 255]
+    tree[5:tree.nled:7] = [0, 255, 255]
+    tree[6:tree.nled:7] = [255, 255, 255]
     tree.commit()
+    print(tree[0:7])
+    print(" ")
+    print(tree[:])
 
