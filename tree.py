@@ -2,23 +2,25 @@ from gpiozero import SPIDevice, SourceMixin
 from numpy import array
 
 class FastRGBChristmasTree(SourceMixin, SPIDevice):
-    def __init__(self, brightness=1, autocommit=False, *args, **kwargs):
+    def __init__(self, brightness=0, autocommit=False, *args, **kwargs):
         super(FastRGBChristmasTree, self).__init__(mosi_pin=12, clock_pin=25,
                                                    *args, **kwargs)
         # Number of LEDs
         self.nled = 25
         # LED configuration array
-        self.leds = array([[24, 19, 7, 0, 16, 15, 6, 12],
-                          [23, 20, 8, 1, 17, 14, 5, 11],
-                          [22, 21, 9, 2, 18, 13, 4, 10],
-                          [3,  3,  3, 3, 3,  3,  3, 3 ]])
+        self.__led_config = array([[24, 19, 7, 0, 16, 15, 6, 12],
+                                   [23, 20, 8, 1, 17, 14, 5, 11],
+                                   [22, 21, 9, 2, 18, 13, 4, 10]])
         # Start of array __offset
         self.__offset = 4
+
         # frame padding
         frame_s = [0] * (self.__offset)
         frame_end = [0] * 5
+
         # transmit buffer
         self.__buf = frame_s + [0] * self.nled * 4 +frame_end
+
         self.autocommit = autocommit
         self.brightness = 1
 
@@ -29,23 +31,31 @@ class FastRGBChristmasTree(SourceMixin, SPIDevice):
         return self.nled
 
     def __setitem__(self, ind, val):
-        # Enable the use of the slice operator
-        if isinstance(ind, slice):
-            r_start = ind.start if ind.start is not None else 0
-            r_stop = ind.stop if ind.stop is not None else self.nled
-            r_step = ind.step if ind.step is not None else 1
-            r = range(r_start, r_stop, r_step)
+        if isinstance(ind, tuple) or isinstance(ind, slice):
+            # Shortcut for the writing the star as a layer
+            if isinstance(ind, tuple) and (ind[0] == 3):
+                self.__setitem__(3, val)
+                return
+
+            # Handle changing multiple LEDs
+            autocommit_disengaged = False
+            if self.autocommit:
+                autocommit_disengaged = True
+                self.autocommit = False
+            r = self.__led_config[ind].flatten()
             if type(val[0]) is not list:
                 for i in r:
                     self.__setitem__(i, val)
-                return
             elif len(val) == len(r):
                 for i in range(0, len(val)):
                     self.__setitem__(r[i], val[i])
-                return
             else:
                 raise IndexError("Mismatch between the LED indices and the \
 dimension of the colour list. ")
+            if autocommit_disengaged:
+                self.autocommit = True
+                self.commit()
+            return
 
         if len(val) < 3 or len(val) > 4:
             raise IndexError("The length of the val array must be between 3 \
@@ -73,13 +83,14 @@ and 4.")
             self.commit()
 
     def __getitem__(self, ind):
-        if isinstance(ind, slice):
+        if isinstance(ind, tuple) or isinstance(ind, slice):
+            # Shortcut for the writing the star as a layer
+            if isinstance(ind, tuple) and (ind[0] == 3):
+                return self.__getitem__(3)
+
+            # Handle request for multiple LEDs
             val = []
-            # Convert slice to range
-            r_start = ind.start if ind.start is not None else 0
-            r_stop = ind.stop if ind.stop is not None else self.nled
-            r_step = ind.step if ind.step is not None else 1
-            r = range(r_start, r_stop, r_step)
+            r = self.__led_config[ind].flatten()
             for i in r:
                 val.append(self.__getitem__(i))
             return val
@@ -97,26 +108,35 @@ and 4.")
         super(FastRGBChristmasTree, self).close()
 
     def __brightness_convert(self, val):
-        if val > 31 or val < 1:
-            print(val)
-            raise ValueError("The brightness must be between 1 and 31")
+        if val > 30 or val < 0:
+            raise ValueError("The brightness must be between 0 and 30")
+        val = val + 1
         # 0b1110000 == 224
         return 0b11100000 | int(val)
 
     def __brightness_revert(self, val):
-        return 0b00011111 & val
+        return 0b00011111 & val - 1
 
     def commit(self):
         self._spi.transfer(self.__buf)
 
     def off(self):
-        self[:] =  [1, 0, 0, 0]
+        self[:] =  [0, 0, 0, 0]
+        self.star = [0, 0, 0, 0]
         self.commit()
 
     def reset(self):
         for i in range(0, len(self.__buf)):
             self.__buf[i] = 0
         self.commit()
+
+    @property
+    def star(self):
+        return self.__getitem__(3)
+
+    @star.setter
+    def star(self,val):
+        return self.__setitem__(3, val)
 
     @property
     def brightness(self):
@@ -134,15 +154,4 @@ and 4.")
 
 if __name__ == '__main__':
     tree = FastRGBChristmasTree()
-    tree[0:tree.nled:7] = [255, 0, 0]
-    tree[1:tree.nled:7] = [0, 255, 0]
-    tree[2:tree.nled:7] = [0, 0, 255]
-    tree[3:tree.nled:7] = [255, 255, 0]
-    tree[4:tree.nled:7] = [255, 0, 255]
-    tree[5:tree.nled:7] = [0, 255, 255]
-    tree[6:tree.nled:7] = [255, 255, 255]
-    tree.commit()
-    print(tree[0:7])
-    print(" ")
-    print(tree[:])
 
