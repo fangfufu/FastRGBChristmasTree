@@ -8,6 +8,6 @@ if __name__ == '__main__':
     tree = FastRGBChristmasTree()
     while True:
         for i in range(0,25):
-            on = 1 if random() > 0.5 else 0
+            on = 255 if random() > 0.3 else 0
             tree[i] = [1, on, on, on]
         tree.commit()
