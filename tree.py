@@ -2,9 +2,31 @@ from gpiozero import SPIDevice, SourceMixin
 from numpy import array
 
 class FastRGBChristmasTree(SourceMixin, SPIDevice):
-    def __init__(self, brightness=0, autocommit=False, *args, **kwargs):
-        super(FastRGBChristmasTree, self).__init__(mosi_pin=12, clock_pin=25,
-                                                   *args, **kwargs)
+    '''
+    The FastRGBChristmasTree -- driver for The Pi Hut 3D RGB Christmas Tree
+
+    This is a faster driver for the 3D RGB Christmas Tree from The Pi Hut. The
+    original driver from The Pi Hut refreshes the whole Christmas Tree even if
+    you change a single LED. This version allows you to change the state of
+    multiple LEDs before sending the command down to the SPI bus. The indexing
+    convention for the LEDs is also more natural.
+
+    For more information about this driver, please visit its Github page at:
+        https://github.com/fangfufu/FastRGBChristmasTree
+
+    To buy The Pi Hut 3D RGB Christmas Tree, please visit:
+        https://thepihut.com/products/3d-rgb-xmas-tree-for-raspberry-pi
+
+    Attributes:
+        autocommit: Automatically send SPI commands after changing the LED
+            configuration. (Automatically call self.commit() after calling
+            self.__setitem__())
+        brightness: The default brightness of the LEDs, if the brightness is not
+            specified
+    '''
+
+    def __init__(self, brightness=0, autocommit=False):
+        super(FastRGBChristmasTree, self).__init__(mosi_pin=12, clock_pin=25)
         # Number of LEDs
         self.nled = 25
         # LED configuration array
