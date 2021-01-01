@@ -18,14 +18,21 @@ class FastRGBChristmasTree(SourceMixin, SPIDevice):
         https://thepihut.com/products/3d-rgb-xmas-tree-for-raspberry-pi
 
     Attributes:
-        autocommit: Automatically send SPI commands after changing the LED
-            configuration. (Automatically call self.commit() after calling
-            self.__setitem__())
-        brightness: The default brightness of the LEDs, if the brightness is not
-            specified
+        autocommit (bool): Whether to automatically send SPI commands after
+            changing the LED configuration. (Basically automatically call
+            self.commit() after calling self.__setitem__())
+        brightness (int): The default brightness of the LEDs, if the brightness
+            is not specified. Brightness has to be between 0 to 30 (inclusive).
     '''
 
     def __init__(self, brightness=0, autocommit=False):
+        '''
+        Constructor
+
+        Args:
+            brightness (int): Sets the brightness attribute.
+            autocommit (bool): Sets the autocommit attribute.
+        '''
         super(FastRGBChristmasTree, self).__init__(mosi_pin=12, clock_pin=25)
         # Number of LEDs
         self.nled = 25
@@ -43,16 +50,43 @@ class FastRGBChristmasTree(SourceMixin, SPIDevice):
         # transmit buffer
         self.__buf = frame_s + [0] * self.nled * 4 +frame_end
 
-        self.autocommit = autocommit
-        self.brightness = 1
-
+        self.brightness = brightness
         self.reset()
-        self.off()
+
+        self.autocommit = autocommit
+
 
     def __len__(self):
+        ''' Returns the number of LEDs on the Christmas tree. '''
         return self.nled
 
     def __setitem__(self, ind, val):
+        '''
+        Set the colour and optionally brightness of LEDs
+
+        Args:
+            ind: The index of the LEDs, works in the same way as how you index
+                a numpy array, more specifically it can be one of the following:
+                    - an integer
+                    - a 2-tuple of integer
+                    - a slice
+                    - a 2-tuple of slices
+                For more on how the LEDs are indexed, please refer to the Github
+                page.
+            val: The settings for the LED(s). Each LED can be set using a list
+                of the following format:
+                    - [R, G, B], where each pixel value has to between 0-255.
+                    - [Brightness, R, G, B], where Brightness is an integer
+                    between 0-30 inclusive, and R, G, B is an integer between
+                    0-255.
+                Multiple LEDs can be set at once, using a list of lists. However
+                the number of LEDs set must be either 1, or match the number
+                LEDs indexed,
+
+        Raises:
+            IndexError: If there is a dimensional mismatch between the LED
+            indices and the dimension of the colour list.
+        '''
         if isinstance(ind, tuple) or isinstance(ind, slice):
             # Shortcut for the writing the star as a layer
             if isinstance(ind, tuple) and (ind[0] == 3):
@@ -105,6 +139,28 @@ and 4.")
             self.commit()
 
     def __getitem__(self, ind):
+        '''
+        Retrive the brightness and colour settings the LEDs
+
+        Args:
+            ind: The index of the LEDs, works in the same way as how you index
+                a numpy array, more specifically it can be one of the following:
+                    - an integer
+                    - a 2-tuple of integer
+                    - a slice
+                    - a 2-tuple of slices
+                For more on how the LEDs are indexed, please refer to the Github
+                page.
+
+        Returns:
+            If only one LED is specified, the LED setting in the format of
+            [Brightness, R, G, B] will be returned, where Brightness is an
+            integer between 0-30 inclusive and R, G, B is an integer between
+            0-255.
+
+            If multiple indices are supplied, then a list of with lists of LED
+            setting will be returned.
+        '''
         if isinstance(ind, tuple) or isinstance(ind, slice):
             # Shortcut for the writing the star as a layer
             if isinstance(ind, tuple) and (ind[0] == 3):
@@ -127,9 +183,11 @@ and 4.")
             return val
 
     def __del__(self):
+        ''' Destructor '''
         super(FastRGBChristmasTree, self).close()
 
     def __brightness_convert(self, val):
+        ''' Convert brightness value to buffer format  '''
         if val > 30 or val < 0:
             raise ValueError("The brightness must be between 0 and 30")
         val = val + 1
@@ -137,31 +195,40 @@ and 4.")
         return 0b11100000 | int(val)
 
     def __brightness_revert(self, val):
+        ''' Convert buffer brightness t to human readable format '''
         return 0b00011111 & val - 1
 
     def commit(self):
+        ''' Send the current LED configuration down the SPI bus '''
         self._spi.transfer(self.__buf)
 
     def off(self):
+        ''' Turn off the LEDs '''
         self[:] =  [0, 0, 0, 0]
         self.star = [0, 0, 0, 0]
         self.commit()
 
     def reset(self):
+        ''' Reset the LEDs by sending down zeros '''
+        brightness = self.brightness
         for i in range(0, len(self.__buf)):
             self.__buf[i] = 0
         self.commit()
+        self.brightness = brightness
 
     @property
     def star(self):
+        ''' Return the value of the star on the LEDs '''
         return self.__getitem__(3)
 
     @star.setter
     def star(self,val):
+        ''' Set the value of the star on the LEDs '''
         return self.__setitem__(3, val)
 
     @property
     def brightness(self):
+        ''' Return the mean brightness of the LEDs '''
         val = 0
         for i in range(0, self.nled):
             s = self.__offset + i * 4
@@ -170,10 +237,12 @@ and 4.")
 
     @brightness.setter
     def brightness(self, val):
+        ''' Set the brightness of the LEDs '''
         for i in range(0, self.nled):
             s = self.__offset + i * 4
             self.__buf[s] = self.__brightness_convert(val)
 
 if __name__ == '__main__':
     tree = FastRGBChristmasTree()
+    tree.off()
 
