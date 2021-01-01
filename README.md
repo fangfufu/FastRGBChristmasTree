@@ -24,7 +24,7 @@ You can also set multiple LEDs at once, e.g.
 ```python
 tree[:,0]   = [[255, 0, 0], [255, 255, 0], [0, 255, 0]]
 ```
-The LEDs are set using a list in the format of ``[R, G, B]`` or ``[Brightness, R, G, B]``, where Brightness is an integer between 0-30 inclusive, and R, G, B is an integer between 0-255.
+The LEDs are set using a list in the format of ``[R, G, B]`` or ``[Brightness, R, G, B]``, where Brightness is an integer between 0-30 inclusive, and R, G, B is an integer between 0-255 inclusive.
 
 The statements above only configures the command buffer, which still needs to be sent down to the SPI bus. To commit your configuration, do:
 ```python
@@ -35,9 +35,9 @@ The indexing schemed is explained in the section below.
 ## The indexing of the LEDs
 I decided to include a numpy array (``__led_config``) to help with indexing the LEDs [[3]]. Vertically, the LEDs are separated into layers, based on the height from the base of the tree. The bottom layer is layer 0. The layer below the star is layer 2. If you look at the Christmas tree from top down, you can see that the tree has 8 "vanes". The numpy array stores the index for each LED in the format of ``[layer][vane]``. If you orient the tree in such a way that the Raspberry Pi is towards you, you can index the LEDs using the table below: 
 
-|         |       |    |    |    |        |        |   |   |   |       |
-|---------|-------|----|----|----|--------|--------|---|---|---|-------|
-|**Layer**|       | 0  | 1  | 2  | 3      | 3      | 2 | 1 | 0 |       |
+|         |        |    |    |    |        |        |   |   |   |       |
+|---------|--------|----|----|----|--------|--------|---|---|---|-------|
+|**Layer**|        | 0  | 1  | 2  | 3      | 3      | 2 | 1 | 0 |       |
 |         |**Vane**|    |    |    | **0**  | **1**  |   |   |   |       |
 | 0       |        |    |    |    | 24     | 19     |   |   |   |       |
 | 1       |        |    |    |    | 23     | 20     |   |   |   |       |
@@ -53,7 +53,7 @@ I decided to include a numpy array (``__led_config``) to help with indexing the 
 |         |        |    |    |    |        |        |   | P | I |       |
 
 ## Other thoughts 
-The existing example code is awful. There is no datasheet. I would have expected better documentation and drivers for the £18 I paid. 
+The existing example code from The Pi Hut is awful. There is no datasheet. I would have expected better documentation and drivers for the £18 I paid. 
 
 [1]: https://thepihut.com/products/3d-rgb-xmas-tree-for-raspberry-pi
 [2]: https://github.com/ThePiHut/rgbxmastree#rgbxmastree
