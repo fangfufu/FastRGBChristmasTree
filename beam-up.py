@@ -1,3 +1,7 @@
+'''
+Divide the Christmas tree into 4 layers, with red, green, blue and
+white. Then move each layer up
+'''
 from tree import FastRGBChristmasTree
 from time import sleep
 
