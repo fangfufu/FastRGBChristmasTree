@@ -1,3 +1,6 @@
+'''
+Configure the LED into a spinning swirl
+'''
 from tree import FastRGBChristmasTree
 from time import sleep
 
