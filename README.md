@@ -30,6 +30,9 @@ The statements above only configures the command buffer, which still needs to be
 ```python
 tree.commit()
 ```
+
+There are also a lot source code examples in the repository that you can follow.
+
 The indexing schemed is explained in the section below.
 
 ## The indexing of the LEDs
