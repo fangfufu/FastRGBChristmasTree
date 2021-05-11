@@ -1,6 +1,8 @@
 # FastRGBChristmasTree
 This is basically a faster / more sensible version of the driver code for the 3D RGB Xmas Tree from The Pi Hut [[1]]. The Pi Hut provided their own  on Github [[2]], but it is super slow - it only allows you to change one LED at a time. In The Pi Hut's code, changing a single LED requires the whole tree to be refreshed, which requires the generation of SPI command byte string. Refreshing the whole Christmas tree seem to be quite slow. Furthermore, every time the SPI command byte string gets generated, 5 list comprehensions are performed<sup>*</sup>. This could be slowing the program down. 
 
+<sup>*</sup> I could be wrong on this one - I am not very good with Python. This is based on my understand of line 88-90 of [tree.py](https://github.com/ThePiHut/rgbxmastree/blob/master/tree.py#L88-L90)
+
 ## How to use the driver
 Put ``tree.py`` in the same folder as your code. To instantiate the driver, use the following:
 ```python
@@ -58,8 +60,8 @@ I decided to include a numpy array (``__led_config``) to help with indexing the 
 ## Other thoughts 
 The existing example code from The Pi Hut is awful. There is no datasheet. I would have expected better documentation and drivers for the £18 I paid. 
 
+If you want to go even faster, you might want to mod your Christmas tree. Please have a look at [issue #2](https://github.com/fangfufu/FastRGBChristmasTree/issues/2).
+
 [1]: https://thepihut.com/products/3d-rgb-xmas-tree-for-raspberry-pi
 [2]: https://github.com/ThePiHut/rgbxmastree#rgbxmastree
 [3]: https://numpy.org/doc/stable/user/basics.indexing.html
-
-<sup>*</sup> I could be wrong on this one - I am not very good with Python. This is based on my understand of line 88-90 of [tree.py](https://github.com/ThePiHut/rgbxmastree/blob/master/tree.py#L88-L90)
